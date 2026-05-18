@@ -20,31 +20,32 @@ Empowering people with physical disabilities through adaptive sports equipment, 
 - **Node.js** - Runtime
 - **Express.js** - REST API
 - **JWT** - Authentication
-- **PostgreSQL** - Database
+- **MySQL** - Database
 - **Sequelize** - ORM
 
 ##  Project Structure
 
 ```
 goability-platform/
-├── backend/
+├── backend-mysql/              # Active Express API
 │   ├── server.js              # Express server entry point
-│   ├── config/database.js     # Database configuration
+│   ├── config/database.js     # MySQL configuration
 │   ├── database/
 │   │   ├── schema.sql         # Complete database schema
 │   │   └── seed.js            # Demo data seeder
 │   ├── middleware/auth.js     # JWT authentication middleware
-│   ├── models/                # Database models
-│   └── routes/                # API routes
-│       ├── auth.js            # Authentication (register/login)
-│       ├── users.js           # User management
-│       ├── products.js        # Marketplace products
-│       ├── orders.js          # Order management
-│       ├── training.js        # Training programs & progress
-│       ├── community.js       # Forum, events, stories
-│       ├── payments.js        # Fake payments
-│       ├── analytics.js       # Dashboard analytics
-│       └── contact.js         # Contact form
+│   ├── routes/                # API routes
+│   │   ├── auth.js            # Authentication (register/login)
+│   │   ├── users.js           # User management
+│   │   ├── products.js        # Marketplace products
+│   │   ├── orders.js          # Order management
+│   │   ├── training.js        # Training programs & progress
+│   │   ├── community.js       # Forum, events, stories
+│   │   ├── payments.js        # Fake payments
+│   │   ├── analytics.js       # Dashboard analytics
+│   │   ├── contact.js         # Contact form
+│   │   └── messages.js        # Messaging system
+│   └── node_modules/
 ├── frontend/
 │   ├── pages/                 # Next.js pages
 │   │   ├── index.js           # Home page
@@ -70,27 +71,27 @@ goability-platform/
 
 ### Prerequisites
 - Node.js 18+
-- PostgreSQL 14+
+- MySQL 8+
 - npm or yarn
 
 ### 1. Database Setup
 ```bash
-# Create PostgreSQL database
-createdb goability
+# Create MySQL database
+mysql -u root -p -e "CREATE DATABASE goability"
 
 # Run schema
-psql -d goability -f backend/database/schema.sql
+mysql -u root -p goability < backend-mysql/database/schema.sql
 
 # Seed demo data
-cd backend
+cd backend-mysql
 node database/seed.js
 ```
 
 ### 2. Backend Setup
 ```bash
-cd backend
+cd backend-mysql
 npm install
-cp .env .env.local  # Edit database credentials
+# Edit backend-mysql/.env with your MySQL credentials
 npm run dev          # Runs on port 5000
 ```
 
