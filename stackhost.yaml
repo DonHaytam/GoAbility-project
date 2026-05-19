@@ -3,8 +3,12 @@ runtime:
   image: node:20
 
 commands:
-  build: cd backend-mysql && npm install
-  start: cd backend-mysql && npm start
+  build:
+    - cd backend-mysql
+    - npm install
+  start:
+    - cd backend-mysql
+    - npm start
 
 port: 5000
 
