@@ -4,7 +4,7 @@ runtime:
 
 commands:
   build:
-    - npm --prefix backend-mysql install
+    - sh build.sh
   start: node backend-mysql/server.js
 
 port: 5000
