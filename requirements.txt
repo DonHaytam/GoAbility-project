@@ -1,0 +1,31 @@
+# GoAbility - Project Requirements
+# Install with: npm install (in each subdirectory)
+
+# Runtime
+node >= 18
+npm >= 9
+mysql >= 8
+
+# Backend (backend-mysql/package.json)
+express
+mysql2
+sequelize
+jsonwebtoken
+bcryptjs
+express-validator
+express-rate-limit
+helmet
+cors
+cookie-parser
+dotenv
+uuid
+
+# Frontend (frontend/package.json)
+next
+react
+react-dom
+tailwindcss
+axios
+i18next
+framer-motion
+recharts
