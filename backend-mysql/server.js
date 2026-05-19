@@ -60,7 +60,11 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`GoAbility API (MySQL) running on port ${PORT}`);
-  console.log(`Environment: ${isProd ? 'production' : 'development'}`);
-});
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`GoAbility API (MySQL) running on port ${PORT}`);
+    console.log(`Environment: ${isProd ? 'production' : 'development'}`);
+  });
+}
+
+module.exports = app;
