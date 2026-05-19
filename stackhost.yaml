@@ -1,7 +1,6 @@
 name: goability-backend
 runtime:
-  type: node
-  version: 20
+  image: node:20
 
 build: cd backend-mysql && npm install
 start: cd backend-mysql && npm start
