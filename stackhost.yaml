@@ -6,9 +6,7 @@ commands:
   build:
     - cd backend-mysql
     - npm install
-  start:
-    - cd backend-mysql
-    - npm start
+  start: cd backend-mysql && npm start
 
 port: 5000
 
