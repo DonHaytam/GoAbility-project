@@ -67,52 +67,92 @@ goability-platform/
 └── README.md
 ```
 
-## Getting Started
+## Getting Started (Local Development)
 
 ### Prerequisites
-- Node.js 18+
-- MySQL 8+
-- npm or yarn
+- **Node.js** 18+ (Download: https://nodejs.org)
+- **MySQL** 8+ (Download: https://dev.mysql.com/downloads/installer/)
+- **npm** (comes with Node.js)
+- **Git** (Download: https://git-scm.com)
 
-### 1. Database Setup
+### Step 1: Clone & Install
 ```bash
-# Create MySQL database
-mysql -u root -p -e "CREATE DATABASE goability"
+git clone https://github.com/DonHaytam/GoAbility-project.git
+cd GoAbility-project
 
-# Run schema
-mysql -u root -p goability < backend-mysql/database/schema.sql
-
-# Seed demo data
+# Install backend dependencies
 cd backend-mysql
+npm install
+
+# Install frontend dependencies
+cd ../frontend
+npm install
+```
+
+### Step 2: Database Setup
+
+**Option A: Local MySQL (recommended for new devs)**
+```bash
+# Open MySQL command line or MySQL Workbench and run:
+CREATE DATABASE goability;
+USE goability;
+SOURCE backend-mysql/database/schema.sql;
+```
+Then seed demo data:
+```bash
+cd backend-mysql
+cp .env.example .env    # Create your .env file
 node database/seed.js
 ```
 
-### 2. Backend Setup
+**Option B: Remote MySQL (e.g. Aiven)**
+Edit `backend-mysql/.env`:
+```env
+DB_URL=mysql://username:password@host:3306/dbname?ssl-mode=REQUIRED
+DB_SSL=true
+JWT_SECRET=your_random_secret_here
+```
+
+### Step 3: Configure Environment
+Edit `backend-mysql/.env` (copy from `.env.example` if needed):
+```env
+PORT=5000
+DB_HOST=localhost
+DB_PORT=3306
+DB_NAME=goability
+DB_USER=root
+DB_PASSWORD=
+JWT_SECRET=your_random_64_char_secret
+JWT_EXPIRE=7d
+FRONTEND_URL=http://localhost:3000
+NODE_ENV=development
+```
+
+### Step 4: Start the Backend
 ```bash
 cd backend-mysql
-npm install
-# Edit backend-mysql/.env with your MySQL credentials
-npm run dev          # Runs on port 5000
+npm run dev    # Starts on http://localhost:5000
 ```
 
-### 3. Frontend Setup
+### Step 5: Start the Frontend (new terminal)
 ```bash
 cd frontend
-npm install
-npm run dev          # Runs on port 3000
+npm run dev    # Starts on http://localhost:3000
 ```
 
-### 4. Access the Platform
+### Step 6: Access the Platform
 - **Frontend:** http://localhost:3000
 - **Backend API:** http://localhost:5000/api
+- **Health check:** http://localhost:5000/api/health
 
-##  Demo Accounts
-
-| Role    | Email             | Password    |
-|---------|-------------------|-------------|
-| Admin   | admin@test.com    | password123 |
-| Coach   | coach@test.com    | password123 |
-| Athlete | athlete@test.com  | password123 |
+### Troubleshooting
+| Problem | Solution |
+|---------|----------|
+| `EADDRINUSE :::5000` | Port 5000 is busy. Run `taskkill /F /IM node.exe` (Windows) or `killall node` (Mac/Linux) |
+| `ECONNREFUSED` | Backend isn't running. Start it with `npm run dev` in `backend-mysql/` |
+| `429 Too Many Requests` | Rate limiter triggered. Restart the backend (`Ctrl+C`, then `npm run dev`) |
+| Database connection error | Check your `.env` DB credentials and make sure MySQL is running |
+| `Please install mysql2 package` | Run `npm install` in `backend-mysql/` |
 
 ##  Brand Identity
 
