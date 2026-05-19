@@ -1,0 +1,13 @@
+name: goability-backend
+runtime:
+  image: node:20
+
+commands:
+  build:
+    - npm --prefix backend-mysql install
+  start: node backend-mysql/server.js
+
+port: 5000
+
+healthcheck: /api/health
+auto_deploy: true
