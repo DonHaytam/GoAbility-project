@@ -16,10 +16,16 @@ const isProd = process.env.NODE_ENV === 'production';
 
 app.use(helmet());
 
+const allowedOrigins = isProd
+  ? [process.env.FRONTEND_URL]
+  : ['http://localhost:3000', 'http://localhost:3001'];
+
+if (process.env.FRONTEND_URL && !allowedOrigins.includes(process.env.FRONTEND_URL)) {
+  allowedOrigins.push(process.env.FRONTEND_URL);
+}
+
 app.use(cors({
-  origin: isProd
-    ? process.env.FRONTEND_URL
-    : ['http://localhost:3000', 'http://localhost:3001'],
+  origin: allowedOrigins,
   credentials: true
 }));
 
