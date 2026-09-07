@@ -1,0 +1,9 @@
+node_modules
+.env
+.env.local
+*.log
+.vercel
+backend.err
+backend-error.log
+backend.log
+uploads
