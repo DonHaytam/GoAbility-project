@@ -25,10 +25,18 @@ export default function Messages() {
   useEffect(() => {
     if (!user) return;
     loadInbox();
-    usersAPI.getCoaches().then(r => setAllUsers(r.data.coaches || [])).catch(() => {});
-    if (user.role !== 'coach') {
-      usersAPI.getAthletes().then(r => setAllUsers(prev => [...prev, ...(r.data.athletes || [])])).catch(() => {});
-    }
+    const loadUsers = async () => {
+      const [coachesRes, athletesRes] = await Promise.all([
+        usersAPI.getCoaches().then(r => r.data.coaches || []).catch(() => null),
+        usersAPI.getAthletes().then(r => r.data.athletes || []).catch(() => null),
+      ]);
+      const list = [...(coachesRes || []), ...(athletesRes || [])];
+      setAllUsers(list);
+      if (list.length === 0 && coachesRes === null && athletesRes === null) {
+        toast.error('Could not load users to message');
+      }
+    };
+    loadUsers();
   }, [user]);
 
   useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [conversation]);
@@ -53,7 +61,9 @@ export default function Messages() {
         }
       });
       setContacts(Object.values(map).sort((a, b) => new Date(b.lastTime) - new Date(a.lastTime)));
-    } catch {}
+    } catch {
+      toast.error('Failed to load your conversations');
+    }
   };
 
   const handleSelectContact = async (c) => {
@@ -62,12 +72,14 @@ export default function Messages() {
     setLoadingConv(true);
     try {
       const res = await messagesAPI.getConversation(c.id);
-      setConversation(res.data.messages || []);
+      setConversation((res.data.messages || []).map(m => ({ ...m, direction: m.sender_id === user?.id ? 'sent' : 'received' })));
       setPartner(res.data.partner);
       const unread = (res.data.messages || []).filter(m => m.sender_id !== user?.id && !m.is_read);
       await Promise.all(unread.map(m => messagesAPI.markRead(m.id).catch(() => {})));
       await loadInbox();
-    } catch {} finally { setLoadingConv(false); }
+    } catch {
+      toast.error('Failed to load conversation');
+    } finally { setLoadingConv(false); }
   };
 
   const handleSend = async () => {
@@ -79,7 +91,7 @@ export default function Messages() {
     try {
       const res = await messagesAPI.send(selectedContact.id, newMsg.trim());
       setConversation(prev => prev.map(m => m.id === tempId ? { ...res.data.message, direction: 'sent', first_name: user?.first_name, last_name: user?.last_name } : m));
-      loadInbox();
+      await loadInbox();
     } catch {
       toast.error('Failed to send');
       setConversation(prev => prev.filter(m => m.id !== tempId));
@@ -94,9 +106,11 @@ export default function Messages() {
     setLoadingConv(true);
     try {
       const res = await messagesAPI.getConversation(u.id);
-      setConversation(res.data.messages || []);
+      setConversation((res.data.messages || []).map(m => ({ ...m, direction: m.sender_id === user?.id ? 'sent' : 'received' })));
       setPartner(res.data.partner);
-    } catch {} finally { setLoadingConv(false); }
+    } catch {
+      toast.error('Failed to load conversation');
+    } finally { setLoadingConv(false); }
   };
 
   const filteredUsers = allUsers.filter(u =>

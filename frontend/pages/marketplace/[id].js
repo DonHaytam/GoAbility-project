@@ -20,7 +20,7 @@ export default function ProductDetail() {
 
   useEffect(() => {
     if (id) {
-      productsAPI.getById(id).then(r => setProduct(r.data.product)).catch(() => router.push('/marketplace')).finally(() => setLoading(false));
+      productsAPI.getById(id).then(r => setProduct(r.data.product)).catch(() => { toast.error('Failed to load product'); router.push('/marketplace'); }).finally(() => setLoading(false));
     }
   }, [id]);
 

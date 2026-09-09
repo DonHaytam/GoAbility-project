@@ -27,8 +27,9 @@ export default function Community() {
   const [newPost, setNewPost] = useState({ title: '', content: '', category: 'General' });
   const [expandedPost, setExpandedPost] = useState(null);
   const [postComments, setPostComments] = useState({});
-  const [newComment, setNewComment] = useState('');
+  const [newComment, setNewComment] = useState({});
   const [commentLoading, setCommentLoading] = useState(false);
+  const [registeredEvents, setRegisteredEvents] = useState({});
   const [likedPosts, setLikedPosts] = useState({});
   const [likedStories, setLikedStories] = useState({});
   const [postLikePending, setPostLikePending] = useState({});
@@ -52,7 +53,7 @@ export default function Community() {
       setMentors(m.data.mentors || []);
       setLikedPosts(Object.fromEntries(loadedPosts.map(x => [x.id, !!x.liked])));
       setLikedStories(Object.fromEntries(loadedStories.map(x => [x.id, !!x.liked])));
-    }).catch(() => {}).finally(() => setLoading(false));
+    }).catch(() => toast.error('Failed to load community content')).finally(() => setLoading(false));
   }, [user]);
 
   useEffect(() => { loadData(); }, [loadData]);
@@ -95,19 +96,22 @@ export default function Community() {
       setPosts(prev => prev.map(p =>
         p.id === postId ? { ...p, view_count: (p.view_count || 0) + 1 } : p
       ));
-    } catch {} finally { setCommentLoading(false); }
+    } catch {
+      toast.error('Failed to load comments');
+    } finally { setCommentLoading(false); }
   };
 
   const handleAddComment = async (postId) => {
     if (!user) return toast.error(t('community.loginToConnect'));
-    if (!newComment.trim()) return;
+    const draft = (newComment[postId] || '').trim();
+    if (!draft) return;
     try {
-      const res = await communityAPI.addComment(postId, newComment);
+      const res = await communityAPI.addComment(postId, draft);
       setPostComments(prev => ({ ...prev, [postId]: [...(prev[postId] || []), res.data.comment] }));
       setPosts(prev => prev.map(p =>
         p.id === postId ? { ...p, comment_count: (p.comment_count || 0) + 1 } : p
       ));
-      setNewComment('');
+      setNewComment(prev => ({ ...prev, [postId]: '' }));
       toast.success('Comment added!');
     } catch { toast.error('Failed to add comment'); }
   };
@@ -129,6 +133,8 @@ export default function Community() {
     if (!user) return toast.error('Please login to register');
     try {
       await communityAPI.registerForEvent(eventId);
+      setRegisteredEvents(prev => ({ ...prev, [eventId]: true }));
+      setEvents(prev => prev.map(ev => ev.id === eventId ? { ...ev, is_registered: true } : ev));
       toast.success('Registered for event!');
     } catch { toast.error('Registration failed'); }
   };
@@ -246,7 +252,7 @@ export default function Community() {
                             )}
                             {user && (
                               <div className="flex gap-2 pt-2">
-                                <input type="text" value={newComment} onChange={e => setNewComment(e.target.value)}
+                                <input type="text" value={newComment[post.id] || ''} onChange={e => setNewComment(prev => ({ ...prev, [post.id]: e.target.value }))}
                                   placeholder="Write a comment..." className="input-field flex-1 text-sm"
                                   onKeyDown={e => e.key === 'Enter' && handleAddComment(post.id)} />
                                 <button onClick={() => handleAddComment(post.id)}
@@ -296,8 +302,12 @@ export default function Community() {
                     <p><FontAwesomeIcon icon={faMapMarkerAlt} className="mr-1" /> {ev.location || 'Online'}</p>
                     {ev.max_participants && <p><FontAwesomeIcon icon={faUsers} className="mr-1" /> Max: {ev.max_participants}</p>}
                   </div>
-                  <button onClick={() => handleRegisterEvent(ev.id)}
-                    className="btn-primary text-sm w-full py-2.5">{t('community.register')}</button>
+                  {ev.is_registered || registeredEvents[ev.id] ? (
+                    <button disabled className="btn-primary text-sm w-full py-2.5 opacity-60 cursor-not-allowed">Registered ✓</button>
+                  ) : (
+                    <button onClick={() => handleRegisterEvent(ev.id)}
+                      className="btn-primary text-sm w-full py-2.5">{t('community.register')}</button>
+                  )}
                 </div>
               ))}
               {!loading && events.length === 0 && <div className="col-span-full text-center py-12 text-gray-500">{t('community.noEvents')}</div>}

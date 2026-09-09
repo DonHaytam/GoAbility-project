@@ -9,10 +9,20 @@ export default function Orders() {
   const user = useRouteGuard();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [orders, setOrders] = useState([]);
+  const [loadingOrders, setLoadingOrders] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
 
-  useEffect(() => {
-    if (user) ordersAPI.getAll().then(r => setOrders(r.data.orders || [])).catch(() => {});
-  }, [user]);
+  const loadOrders = () => {
+    if (!user) return;
+    setLoadingOrders(true);
+    setLoadFailed(false);
+    ordersAPI.getAll()
+      .then(r => setOrders(r.data.orders || []))
+      .catch(() => setLoadFailed(true))
+      .finally(() => setLoadingOrders(false));
+  };
+
+  useEffect(() => { loadOrders(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [user]);
 
   if (!user) return null;
 
@@ -59,7 +69,14 @@ export default function Orders() {
                   ))}
                 </tbody>
               </table>
-              {orders.length === 0 && <p className="text-center py-12 text-gray-400">No orders yet</p>}
+              {loadingOrders && <p className="text-center py-12 text-gray-400">Loading orders...</p>}
+              {!loadingOrders && loadFailed && (
+                <div className="text-center py-12 text-gray-500">
+                  <p className="mb-3">Failed to load orders. Please try again.</p>
+                  <button onClick={loadOrders} className="px-4 py-2 bg-ocean-500 text-white rounded-lg text-sm hover:bg-ocean-400 transition-colors">Retry</button>
+                </div>
+              )}
+              {!loadingOrders && !loadFailed && orders.length === 0 && <p className="text-center py-12 text-gray-400">No orders yet</p>}
             </div>
           </div>
         </div>
