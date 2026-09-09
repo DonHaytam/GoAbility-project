@@ -31,6 +31,8 @@ export default function Community() {
   const [commentLoading, setCommentLoading] = useState(false);
   const [likedPosts, setLikedPosts] = useState({});
   const [likedStories, setLikedStories] = useState({});
+  const [postLikePending, setPostLikePending] = useState({});
+  const [storyLikePending, setStoryLikePending] = useState({});
 
   const loadData = useCallback(() => {
     setLoading(true);
@@ -57,24 +59,30 @@ export default function Community() {
 
   const handleTogglePostLike = async (postId) => {
     if (!user) return toast.error(t('community.loginToConnect'));
+    if (postLikePending[postId]) return;
+    setPostLikePending(prev => ({ ...prev, [postId]: true }));
     try {
       const res = await communityAPI.togglePostLike(postId);
       setLikedPosts(prev => ({ ...prev, [postId]: res.data.liked }));
       setPosts(prev => prev.map(p =>
-        p.id === postId ? { ...p, likes_count: (p.likes_count || 0) + (res.data.liked ? 1 : -1) } : p
+        p.id === postId ? { ...p, likes_count: Math.max(0, (p.likes_count || 0) + (res.data.liked ? 1 : -1)) } : p
       ));
     } catch { toast.error('Failed to toggle like'); }
+    finally { setPostLikePending(prev => ({ ...prev, [postId]: false })); }
   };
 
   const handleToggleStoryLike = async (storyId) => {
     if (!user) return toast.error(t('community.loginToConnect'));
+    if (storyLikePending[storyId]) return;
+    setStoryLikePending(prev => ({ ...prev, [storyId]: true }));
     try {
       const res = await communityAPI.toggleStoryLike(storyId);
       setLikedStories(prev => ({ ...prev, [storyId]: res.data.liked }));
       setStories(prev => prev.map(s =>
-        s.id === storyId ? { ...s, likes_count: (s.likes_count || 0) + (res.data.liked ? 1 : -1) } : s
+        s.id === storyId ? { ...s, likes_count: Math.max(0, (s.likes_count || 0) + (res.data.liked ? 1 : -1)) } : s
       ));
     } catch { toast.error('Failed to toggle like'); }
+    finally { setStoryLikePending(prev => ({ ...prev, [storyId]: false })); }
   };
 
   const handleExpandPost = async (postId) => {

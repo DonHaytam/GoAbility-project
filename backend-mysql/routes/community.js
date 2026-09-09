@@ -269,17 +269,27 @@ router.post('/mentorships', auth, [
 
 router.post('/posts/:id/like', auth, async (req, res) => {
   try {
-    const [existing] = await sequelize.query('SELECT id FROM post_likes WHERE post_id = ? AND user_id = ?', { replacements: [req.params.id, req.user.id] });
-    if (existing.length) {
-      await sequelize.query('DELETE FROM post_likes WHERE id = ?', { replacements: [existing[0].id] });
-      await sequelize.query('UPDATE forum_posts SET likes_count = GREATEST(0, likes_count - 1) WHERE id = ?', { replacements: [req.params.id] });
-      res.json({ liked: false });
-    } else {
-      const id = uuidv4();
-      await sequelize.query('INSERT INTO post_likes (id, post_id, user_id) VALUES (?, ?, ?)', { replacements: [id, req.params.id, req.user.id] });
-      await sequelize.query('UPDATE forum_posts SET likes_count = likes_count + 1 WHERE id = ?', { replacements: [req.params.id] });
-      res.json({ liked: true });
-    }
+    const [postRows] = await sequelize.query(
+      'SELECT id FROM forum_posts WHERE id = ? AND is_approved = true',
+      { replacements: [req.params.id] }
+    );
+    if (!postRows.length) return res.status(404).json({ message: 'Post not found' });
+
+    const result = await sequelize.transaction(async (t) => {
+      const [ins] = await sequelize.query(
+        'INSERT IGNORE INTO post_likes (id, post_id, user_id) VALUES (?, ?, ?)',
+        { replacements: [uuidv4(), req.params.id, req.user.id], transaction: t }
+      );
+      if (ins.affectedRows === 1) {
+        await sequelize.query('UPDATE forum_posts SET likes_count = likes_count + 1 WHERE id = ?', { replacements: [req.params.id], transaction: t });
+        return { liked: true };
+      }
+      await sequelize.query('DELETE FROM post_likes WHERE post_id = ? AND user_id = ?', { replacements: [req.params.id, req.user.id], transaction: t });
+      await sequelize.query('UPDATE forum_posts SET likes_count = GREATEST(0, likes_count - 1) WHERE id = ?', { replacements: [req.params.id], transaction: t });
+      return { liked: false };
+    });
+
+    res.json(result);
   } catch (error) {
     res.status(500).json({ message: 'Failed to toggle like' });
   }
@@ -296,17 +306,27 @@ router.get('/posts/:id/liked', auth, async (req, res) => {
 
 router.post('/stories/:id/like', auth, async (req, res) => {
   try {
-    const [existing] = await sequelize.query('SELECT id FROM story_likes WHERE story_id = ? AND user_id = ?', { replacements: [req.params.id, req.user.id] });
-    if (existing.length) {
-      await sequelize.query('DELETE FROM story_likes WHERE id = ?', { replacements: [existing[0].id] });
-      await sequelize.query('UPDATE success_stories SET likes_count = GREATEST(0, likes_count - 1) WHERE id = ?', { replacements: [req.params.id] });
-      res.json({ liked: false });
-    } else {
-      const id = uuidv4();
-      await sequelize.query('INSERT INTO story_likes (id, story_id, user_id) VALUES (?, ?, ?)', { replacements: [id, req.params.id, req.user.id] });
-      await sequelize.query('UPDATE success_stories SET likes_count = likes_count + 1 WHERE id = ?', { replacements: [req.params.id] });
-      res.json({ liked: true });
-    }
+    const [storyRows] = await sequelize.query(
+      'SELECT id FROM success_stories WHERE id = ? AND is_approved = true',
+      { replacements: [req.params.id] }
+    );
+    if (!storyRows.length) return res.status(404).json({ message: 'Story not found' });
+
+    const result = await sequelize.transaction(async (t) => {
+      const [ins] = await sequelize.query(
+        'INSERT IGNORE INTO story_likes (id, story_id, user_id) VALUES (?, ?, ?)',
+        { replacements: [uuidv4(), req.params.id, req.user.id], transaction: t }
+      );
+      if (ins.affectedRows === 1) {
+        await sequelize.query('UPDATE success_stories SET likes_count = likes_count + 1 WHERE id = ?', { replacements: [req.params.id], transaction: t });
+        return { liked: true };
+      }
+      await sequelize.query('DELETE FROM story_likes WHERE story_id = ? AND user_id = ?', { replacements: [req.params.id, req.user.id], transaction: t });
+      await sequelize.query('UPDATE success_stories SET likes_count = GREATEST(0, likes_count - 1) WHERE id = ?', { replacements: [req.params.id], transaction: t });
+      return { liked: false };
+    });
+
+    res.json(result);
   } catch (error) {
     res.status(500).json({ message: 'Failed to toggle like' });
   }
