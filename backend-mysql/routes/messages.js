@@ -1,5 +1,6 @@
 const express = require('express');
 const { v4: uuidv4 } = require('uuid');
+const { body, validationResult } = require('express-validator');
 const { sequelize } = require('../config/database');
 const { auth } = require('../middleware/auth');
 
@@ -33,10 +34,20 @@ router.get('/sent', auth, async (req, res) => {
   }
 });
 
-router.post('/', auth, async (req, res) => {
+router.post('/', auth, [
+  body('receiverId').isUUID().withMessage('Invalid receiver ID'),
+  body('content').trim().notEmpty().isLength({ max: 5000 }).withMessage('Message content is required'),
+], async (req, res) => {
   try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ message: errors.array()[0].msg });
+
     const { receiverId, content } = req.body;
-    if (!receiverId || !content) return res.status(400).json({ message: 'Receiver and content required' });
+    if (receiverId === req.user.id) return res.status(400).json({ message: 'Cannot send a message to yourself' });
+
+    const [receiverRows] = await sequelize.query('SELECT id FROM users WHERE id = ?', { replacements: [receiverId] });
+    if (!receiverRows.length) return res.status(404).json({ message: 'Receiver not found' });
+
     const id = uuidv4();
     await sequelize.query(
       'INSERT INTO messages (id, sender_id, receiver_id, content) VALUES (?, ?, ?, ?)',
@@ -45,6 +56,7 @@ router.post('/', auth, async (req, res) => {
     const [rows] = await sequelize.query('SELECT * FROM messages WHERE id = ?', { replacements: [id] });
     res.status(201).json({ message: rows[0] });
   } catch (error) {
+    console.error('Send message error:', error);
     res.status(500).json({ message: 'Failed to send message' });
   }
 });

@@ -2,11 +2,13 @@ import React, { useState, useEffect } from 'react';
 import Layout from '../../components/Layout';
 import DashboardSidebar from '../../components/DashboardSidebar';
 import { useAuth } from '../../context/AuthContext';
+import { useRouteGuard } from '../../lib/useRouteGuard';
 import { authAPI } from '../../lib/api';
 import toast from 'react-hot-toast';
 
 export default function Profile() {
-  const { user, refreshUser } = useAuth();
+  const { refreshUser } = useAuth();
+  const user = useRouteGuard();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [form, setForm] = useState({ firstName: '', lastName: '', phone: '', city: '', country: '', bio: '', dateOfBirth: '', gender: '' });
   const [saving, setSaving] = useState(false);

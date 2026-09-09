@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const rawBaseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+const rawBaseURL = process.env.NEXT_PUBLIC_API_URL || 'https://goability-api.vercel.app/api';
 const apiBaseURL = rawBaseURL.endsWith('/api') ? rawBaseURL : `${rawBaseURL.replace(/\/+$/, '')}/api`;
 
 const api = axios.create({
@@ -8,6 +8,8 @@ const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
   withCredentials: true,
 });
+
+let redirectingToLogin = false;
 
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
@@ -20,10 +22,15 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      if (typeof window !== 'undefined' && !window.location.pathname.includes('/auth/')) {
-        window.location.href = '/auth/login';
+    const status = error.response?.status;
+    const isAuthCall = (error.config?.url || '').includes('/auth/login') || (error.config?.url || '').includes('/auth/register');
+    if (status === 401 && !isAuthCall && typeof window !== 'undefined') {
+      if (!window.location.pathname.includes('/auth/')) {
+        localStorage.removeItem('token');
+        if (!redirectingToLogin) {
+          redirectingToLogin = true;
+          window.location.href = '/auth/login';
+        }
       }
     }
     return Promise.reject(error);

@@ -2,16 +2,19 @@ import React, { useState, useEffect } from 'react';
 import Layout from '../../components/Layout';
 import DashboardSidebar from '../../components/DashboardSidebar';
 import { useAuth } from '../../context/AuthContext';
+import { useRouteGuard } from '../../lib/useRouteGuard';
 import { ordersAPI } from '../../lib/api';
 
 export default function Orders() {
-  const { user } = useAuth();
+  const user = useRouteGuard();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [orders, setOrders] = useState([]);
 
   useEffect(() => {
     if (user) ordersAPI.getAll().then(r => setOrders(r.data.orders || [])).catch(() => {});
   }, [user]);
+
+  if (!user) return null;
 
   return (
     <Layout hideFooter>

@@ -35,9 +35,9 @@ if (process.env.DB_URL) {
   sequelize = new Sequelize(process.env.DB_URL, dbConfig);
 } else {
   sequelize = new Sequelize(
-    process.env.DB_NAME || 'goability',
-    process.env.DB_USER || 'root',
-    process.env.DB_PASSWORD || '',
+    process.env.DB_NAME,
+    process.env.DB_USER,
+    process.env.DB_PASSWORD,
     dbConfig
   );
 }

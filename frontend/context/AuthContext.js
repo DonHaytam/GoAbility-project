@@ -3,6 +3,18 @@ import { authAPI } from '../lib/api';
 
 const AuthContext = createContext(null);
 
+const setTokenCookie = (token) => {
+  if (typeof document !== 'undefined') {
+    document.cookie = `token=${encodeURIComponent(token)}; path=/; max-age=604800; samesite=lax`;
+  }
+};
+
+const clearTokenCookie = () => {
+  if (typeof document !== 'undefined') {
+    document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+  }
+};
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -14,6 +26,7 @@ export function AuthProvider({ children }) {
         .then((res) => setUser(res.data))
         .catch(() => {
           localStorage.removeItem('token');
+          clearTokenCookie();
         })
         .finally(() => setLoading(false));
     } else {
@@ -25,6 +38,7 @@ export function AuthProvider({ children }) {
     const res = await authAPI.login({ email, password });
     const { token, user: userData } = res.data;
     localStorage.setItem('token', token);
+    setTokenCookie(token);
     setUser({
       id: userData.id,
       email: userData.email,
@@ -40,6 +54,7 @@ export function AuthProvider({ children }) {
     const res = await authAPI.register(data);
     const { token, user: userData } = res.data;
     localStorage.setItem('token', token);
+    setTokenCookie(token);
     setUser({
       id: userData.id,
       email: userData.email,
@@ -56,6 +71,7 @@ export function AuthProvider({ children }) {
     } catch (e) {
     }
     localStorage.removeItem('token');
+    clearTokenCookie();
     setUser(null);
   }, []);
 

@@ -1,25 +1,32 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Layout from '../../components/Layout';
 import DashboardSidebar from '../../components/DashboardSidebar';
 import { useAuth } from '../../context/AuthContext';
+import { useRouteGuard } from '../../lib/useRouteGuard';
 import { useRouter } from 'next/router';
 import { usersAPI } from '../../lib/api';
 import toast from 'react-hot-toast';
 
 export default function AdminUsers() {
-  const { user } = useAuth();
+  const user = useRouteGuard('admin');
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [users, setUsers] = useState([]);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
 
-  const loadUsers = () => usersAPI.getAll({ search }).then(r => setUsers(r.data.users || [])).catch(() => {});
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  const loadUsers = () => usersAPI.getAll({ search: debouncedSearch }).then(r => setUsers(r.data.users || [])).catch(() => {});
 
   useEffect(() => {
     if (!user) { router.push('/auth/login'); return; }
     if (user.role !== 'admin') { router.push('/dashboard'); return; }
     loadUsers()
-  }, [user, search]);
+  }, [user, debouncedSearch]);
 
   const toggleStatus = async (id) => {
     try {

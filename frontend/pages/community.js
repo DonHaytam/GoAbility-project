@@ -167,11 +167,11 @@ export default function Community() {
                     <div className="flex gap-3">
                       <select value={newPost.category} onChange={e => setNewPost({...newPost, category: e.target.value})}
                         className="input-field w-auto">
-                        <option>{t('community.catGeneral')}</option>
-                        <option>{t('community.catEquipment')}</option>
-                        <option>{t('community.catTraining')}</option>
-                        <option>{t('community.catEvents')}</option>
-                        <option>{t('community.catSupport')}</option>
+                        <option value="General">{t('community.catGeneral')}</option>
+                        <option value="Equipment">{t('community.catEquipment')}</option>
+                        <option value="Training">{t('community.catTraining')}</option>
+                        <option value="Events">{t('community.catEvents')}</option>
+                        <option value="Support">{t('community.catSupport')}</option>
                       </select>
                       <button type="submit" className="btn-primary text-sm px-6 py-2">{t('community.post')}</button>
                     </div>
@@ -329,7 +329,7 @@ export default function Community() {
                     {assoc.email && <p><FontAwesomeIcon icon={faEnvelope} className="mr-1" /> {assoc.email}</p>}
                     {assoc.phone && <p><FontAwesomeIcon icon={faPhone} className="mr-1" /> {assoc.phone}</p>}
                   </div>
-                  {assoc.website && (
+                  {assoc.website && /^https?:\/\//i.test(assoc.website) && (
                     <a href={assoc.website} target="_blank" rel="noopener noreferrer"
                       className="mt-4 inline-block text-ocean-500 text-sm font-medium hover:underline">{t('community.visitWebsite')}</a>
                   )}

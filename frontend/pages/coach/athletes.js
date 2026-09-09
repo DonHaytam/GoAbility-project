@@ -2,16 +2,19 @@ import React, { useState, useEffect } from 'react';
 import Layout from '../../components/Layout';
 import DashboardSidebar from '../../components/DashboardSidebar';
 import { useAuth } from '../../context/AuthContext';
+import { useRouteGuard } from '../../lib/useRouteGuard';
 import { usersAPI } from '../../lib/api';
 
 export default function CoachAthletes() {
-  const { user } = useAuth();
+  const user = useRouteGuard('coach');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [athletes, setAthletes] = useState([]);
 
   useEffect(() => {
     if (user) usersAPI.getAthletes().then(r => setAthletes(r.data.athletes || [])).catch(() => {});
   }, [user]);
+
+  if (!user) return null;
 
   return (
     <Layout hideFooter>

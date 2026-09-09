@@ -54,6 +54,13 @@ router.post('/programs', auth, authorize('coach', 'admin'), async (req, res) => 
 router.post('/enroll', auth, async (req, res) => {
   try {
     const { programId } = req.body;
+    if (!programId) return res.status(400).json({ message: 'programId is required' });
+    const [programRows] = await sequelize.query(
+      'SELECT id FROM training_programs WHERE id = ?',
+      { replacements: [programId] }
+    );
+    if (!programRows.length) return res.status(404).json({ message: 'Program not found' });
+
     const [existing] = await sequelize.query(
       'SELECT id FROM user_enrollments WHERE user_id = ? AND program_id = ?',
       { replacements: [req.user.id, programId] }
@@ -120,16 +127,29 @@ router.get('/progress', auth, async (req, res) => {
 
 router.get('/athletes/:id/progress', auth, authorize('coach', 'admin'), async (req, res) => {
   try {
+    if (req.user.role !== 'admin') {
+      const [linked] = await sequelize.query(
+        `SELECT 1 FROM mentorships m WHERE m.mentor_id = ? AND m.mentee_id = ?
+         UNION ALL
+         SELECT 1 FROM user_enrollments e JOIN training_programs tp ON e.program_id = tp.id
+         WHERE e.user_id = ? AND tp.coach_id = ? LIMIT 1`,
+        { replacements: [req.user.id, req.params.id, req.params.id, req.user.id] }
+      );
+      if (!linked.length) {
+        return res.status(403).json({ message: 'You do not have access to this athlete\'s progress' });
+      }
+    }
     const [rows] = await sequelize.query(
       `SELECT p.*, ts.title as session_title, tp.name as program_name
        FROM user_progress p
        LEFT JOIN training_sessions ts ON p.session_id = ts.id
        LEFT JOIN training_programs tp ON ts.program_id = tp.id
-       WHERE p.user_id = ? ORDER BY p.date DESC`,
+       WHERE p.user_id = ? ORDER BY p.date DESC LIMIT 100`,
       { replacements: [req.params.id] }
     );
     res.json({ progress: rows });
   } catch (error) {
+    console.error('Get athlete progress error:', error);
     res.status(500).json({ message: 'Failed to get athlete progress' });
   }
 });

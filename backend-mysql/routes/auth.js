@@ -49,7 +49,7 @@ router.post('/register', authLimiter, [
       { replacements: [id, email.toLowerCase(), passwordHash, firstName, lastName, role || 'athlete', sanitize(phone), sanitize(city)] }
     );
 
-    const token = jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRE || '7d' });
+    const token = jwt.sign({ id, role: role || 'athlete' }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRE || '7d' });
 
     res.cookie('token', token, {
       httpOnly: true,
@@ -90,7 +90,7 @@ router.post('/login', authLimiter, [
     const isMatch = await bcrypt.compare(password, user.password_hash);
     if (!isMatch) return res.status(401).json({ message: 'Invalid credentials' });
 
-    const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRE || '7d' });
+    const token = jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRE || '7d' });
 
     res.cookie('token', token, {
       httpOnly: true,
@@ -144,8 +144,20 @@ router.post('/logout', auth, (req, res) => {
   res.json({ message: 'Logged out successfully' });
 });
 
-router.put('/profile', auth, async (req, res) => {
+router.put('/profile', auth, [
+  body('firstName').optional({ values: 'falsy' }).trim().isLength({ max: 100 }).withMessage('First name too long'),
+  body('lastName').optional({ values: 'falsy' }).trim().isLength({ max: 100 }).withMessage('Last name too long'),
+  body('phone').optional({ values: 'falsy' }).trim().isLength({ max: 20 }).withMessage('Phone too long'),
+  body('city').optional({ values: 'falsy' }).trim().isLength({ max: 100 }).withMessage('City too long'),
+  body('country').optional({ values: 'falsy' }).trim().isLength({ max: 100 }).withMessage('Country too long'),
+  body('bio').optional({ values: 'falsy' }).trim().isLength({ max: 2000 }).withMessage('Bio too long'),
+  body('dateOfBirth').optional({ values: 'falsy' }).isISO8601().withMessage('Invalid date of birth'),
+  body('gender').optional({ values: 'falsy' }).isIn(['male', 'female', '']).withMessage('Invalid gender'),
+], async (req, res) => {
   try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ message: errors.array()[0].msg });
+
     const { firstName, lastName, phone, city, country, bio, dateOfBirth, gender } = req.body;
     await sequelize.query(
       `UPDATE users SET 

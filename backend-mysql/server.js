@@ -14,6 +14,16 @@ app.set('trust proxy', 1);
 
 const isProd = process.env.NODE_ENV === 'production';
 
+if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
+  console.error('FATAL: JWT_SECRET is missing or too short (< 32 chars)');
+  process.exit(1);
+}
+
+if (isProd && !process.env.FRONTEND_URL) {
+  console.error('FATAL: FRONTEND_URL is required in production');
+  process.exit(1);
+}
+
 app.use(helmet());
 
 const allowedOrigins = isProd

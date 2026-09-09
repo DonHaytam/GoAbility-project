@@ -1,5 +1,6 @@
 const express = require('express');
 const { v4: uuidv4 } = require('uuid');
+const { body, validationResult } = require('express-validator');
 const { sequelize } = require('../config/database');
 const { auth, authorize } = require('../middleware/auth');
 
@@ -48,8 +49,15 @@ router.get('/posts/:id', async (req, res) => {
   }
 });
 
-router.post('/posts', auth, async (req, res) => {
+router.post('/posts', auth, [
+  body('title').trim().notEmpty().isLength({ max: 255 }).withMessage('Title is required'),
+  body('content').trim().notEmpty().isLength({ max: 10000 }).withMessage('Content is required'),
+  body('category').optional({ values: 'falsy' }).trim().isLength({ max: 100 }).withMessage('Category too long'),
+], async (req, res) => {
   try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ message: errors.array()[0].msg });
+
     const { title, content, category, tags } = req.body;
     const id = uuidv4();
     await sequelize.query(
@@ -63,8 +71,13 @@ router.post('/posts', auth, async (req, res) => {
   }
 });
 
-router.post('/posts/:id/comments', auth, async (req, res) => {
+router.post('/posts/:id/comments', auth, [
+  body('content').trim().notEmpty().isLength({ max: 5000 }).withMessage('Comment content is required'),
+], async (req, res) => {
   try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ message: errors.array()[0].msg });
+
     const { content } = req.body;
     const id = uuidv4();
     await sequelize.query(
@@ -80,17 +93,30 @@ router.post('/posts/:id/comments', auth, async (req, res) => {
 
 router.get('/events', async (req, res) => {
   try {
+    const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
+    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 50, 1), 100);
     const [rows] = await sequelize.query(
-      'SELECT e.*, u.first_name, u.last_name FROM events e LEFT JOIN users u ON e.organizer_id = u.id ORDER BY e.event_date ASC'
+      'SELECT e.*, u.first_name, u.last_name FROM events e LEFT JOIN users u ON e.organizer_id = u.id ORDER BY e.event_date ASC LIMIT ? OFFSET ?',
+      { replacements: [limit, (page - 1) * limit] }
     );
-    res.json({ events: rows });
+    res.json({ events: rows, page, limit });
   } catch (error) {
+    console.error('Get events error:', error);
     res.status(500).json({ message: 'Failed to get events' });
   }
 });
 
-router.post('/events', auth, async (req, res) => {
+router.post('/events', auth, [
+  body('title').trim().notEmpty().isLength({ max: 255 }).withMessage('Title is required'),
+  body('eventType').optional({ values: 'falsy' }).trim().isLength({ max: 50 }).withMessage('Event type too long'),
+  body('eventDate').notEmpty().withMessage('Event date is required'),
+  body('location').optional({ values: 'falsy' }).trim().isLength({ max: 255 }).withMessage('Location too long'),
+  body('maxParticipants').optional({ values: 'falsy' }).isInt({ min: 1 }).withMessage('Max participants must be a positive integer'),
+], async (req, res) => {
   try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ message: errors.array()[0].msg });
+
     const { title, description, eventType, eventDate, location, isVirtual, maxParticipants } = req.body;
     const id = uuidv4();
     await sequelize.query(
@@ -108,41 +134,60 @@ router.post('/events', auth, async (req, res) => {
 router.post('/events/:id/register', auth, async (req, res) => {
   try {
     const id = uuidv4();
-    await sequelize.query(
+    const [, meta] = await sequelize.query(
       'INSERT IGNORE INTO event_registrations (id, event_id, user_id) VALUES (?, ?, ?)',
       { replacements: [id, req.params.id, req.user.id] }
     );
-    const [rows] = await sequelize.query('SELECT * FROM event_registrations WHERE id = ?', { replacements: [id] });
-    res.status(201).json({ registration: rows[0] || { id, event_id: req.params.id, user_id: req.user.id } });
+    if (meta && meta.affectedRows === 0) {
+      return res.status(409).json({ message: 'Already registered for this event' });
+    }
+    const [rows] = await sequelize.query(
+      'SELECT * FROM event_registrations WHERE event_id = ? AND user_id = ?',
+      { replacements: [req.params.id, req.user.id] }
+    );
+    res.status(201).json({ registration: rows[0] });
   } catch (error) {
+    console.error('Event registration error:', error);
     res.status(500).json({ message: 'Failed to register for event' });
   }
 });
 
 router.get('/associations', async (req, res) => {
   try {
-    const [rows] = await sequelize.query('SELECT * FROM associations WHERE is_verified = true ORDER BY name');
+    const [rows] = await sequelize.query('SELECT * FROM associations WHERE is_verified = true ORDER BY name LIMIT 100');
     res.json({ associations: rows });
   } catch (error) {
+    console.error('Get associations error:', error);
     res.status(500).json({ message: 'Failed to get associations' });
   }
 });
 
 router.get('/stories', async (req, res) => {
   try {
+    const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
+    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 50, 1), 100);
     const [rows] = await sequelize.query(
       `SELECT s.*, u.first_name, u.last_name, u.avatar_url
        FROM success_stories s JOIN users u ON s.user_id = u.id
-       WHERE s.is_approved = true ORDER BY s.is_featured DESC, s.created_at DESC`
+       WHERE s.is_approved = true ORDER BY s.is_featured DESC, s.created_at DESC LIMIT ? OFFSET ?`,
+      { replacements: [limit, (page - 1) * limit] }
     );
-    res.json({ stories: rows });
+    res.json({ stories: rows, page, limit });
   } catch (error) {
+    console.error('Get stories error:', error);
     res.status(500).json({ message: 'Failed to get stories' });
   }
 });
 
-router.post('/stories', auth, async (req, res) => {
+router.post('/stories', auth, [
+  body('title').trim().notEmpty().isLength({ max: 255 }).withMessage('Title is required'),
+  body('content').trim().notEmpty().isLength({ max: 10000 }).withMessage('Content is required'),
+  body('imageUrl').optional({ values: 'falsy' }).isURL().withMessage('Invalid image URL'),
+], async (req, res) => {
   try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ message: errors.array()[0].msg });
+
     const { title, content, imageUrl } = req.body;
     const id = uuidv4();
     await sequelize.query(
@@ -158,18 +203,32 @@ router.post('/stories', auth, async (req, res) => {
 
 router.get('/mentors', auth, async (req, res) => {
   try {
+    const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
+    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 50, 1), 100);
     const [rows] = await sequelize.query(
-      `SELECT id, first_name, last_name, avatar_url, bio FROM users WHERE role = 'coach'`
+      `SELECT id, first_name, last_name, avatar_url, bio FROM users WHERE role = 'coach' AND is_active = true ORDER BY first_name LIMIT ? OFFSET ?`,
+      { replacements: [limit, (page - 1) * limit] }
     );
-    res.json({ mentors: rows });
+    res.json({ mentors: rows, page, limit });
   } catch (error) {
+    console.error('Get mentors error:', error);
     res.status(500).json({ message: 'Failed to get mentors' });
   }
 });
 
-router.post('/mentorships', auth, async (req, res) => {
+router.post('/mentorships', auth, [
+  body('mentorId').isUUID().withMessage('Invalid mentor ID'),
+  body('goals').optional({ values: 'falsy' }).trim().isLength({ max: 2000 }).withMessage('Goals too long'),
+], async (req, res) => {
   try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ message: errors.array()[0].msg });
+
     const { mentorId, goals } = req.body;
+    if (mentorId === req.user.id) return res.status(400).json({ message: 'Cannot request mentorship from yourself' });
+    const [mentorRows] = await sequelize.query("SELECT id FROM users WHERE id = ? AND role = 'coach'", { replacements: [mentorId] });
+    if (!mentorRows.length) return res.status(404).json({ message: 'Mentor not found' });
+
     const id = uuidv4();
     await sequelize.query(
       'INSERT INTO mentorships (id, mentor_id, mentee_id, goals) VALUES (?, ?, ?, ?)',

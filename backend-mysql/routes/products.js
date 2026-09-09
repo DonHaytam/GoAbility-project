@@ -1,38 +1,53 @@
 const express = require('express');
 const { v4: uuidv4 } = require('uuid');
+const { body, validationResult } = require('express-validator');
 const { sequelize } = require('../config/database');
 const { auth, authorize } = require('../middleware/auth');
 
 const router = express.Router();
 
+const HTTPS_URL_RE = /^https?:\/\/[^\s/$.?#].[^\s]*$/i;
+
+const imagesValidator = body('images').optional({ values: 'falsy' }).custom((images) => {
+  if (!Array.isArray(images)) return true;
+  for (const url of images) {
+    if (typeof url !== 'string' || !HTTPS_URL_RE.test(url)) {
+      throw new Error('Each image must be a valid http(s) URL');
+    }
+  }
+  return true;
+});
+
 router.get('/', async (req, res) => {
   try {
     const { category, search, minPrice, maxPrice, condition, sort, page = 1, limit = 12 } = req.query;
-    let query = 'SELECT * FROM products WHERE is_available = true';
+    const whereClauses = ['is_available = true'];
     const params = [];
 
-    if (category) { query += ' AND category = ?'; params.push(category); }
-    if (search) { query += ' AND (name LIKE ? OR description LIKE ?)'; const s = `%${search.replace(/[%_]/g, '\\$&')}%`; params.push(s, s); }
-    if (minPrice) { query += ' AND price >= ?'; params.push(parseFloat(minPrice)); }
-    if (maxPrice) { query += ' AND price <= ?'; params.push(parseFloat(maxPrice)); }
-    if (condition) { query += ' AND `condition` = ?'; params.push(condition); }
+    if (category) { whereClauses.push('category = ?'); params.push(category); }
+    if (search) { whereClauses.push('(name LIKE ? OR description LIKE ?)'); const s = `%${search.replace(/[%_]/g, '\\$&')}%`; params.push(s, s); }
+    if (minPrice) { whereClauses.push('price >= ?'); params.push(parseFloat(minPrice)); }
+    if (maxPrice) { whereClauses.push('price <= ?'); params.push(parseFloat(maxPrice)); }
+    if (condition) { whereClauses.push('`condition` = ?'); params.push(condition); }
 
-    const [countRows] = await sequelize.query(query.replace('SELECT *', 'SELECT COUNT(*) as count'), { replacements: params });
-    const total = countRows[0].count;
+    const whereSql = ' WHERE ' + whereClauses.join(' AND ');
 
+    const [[{ count: total }]] = await sequelize.query(`SELECT COUNT(*) as count FROM products${whereSql}`, { replacements: params });
+
+    let orderSql;
     switch (sort) {
-      case 'price_asc': query += ' ORDER BY price ASC'; break;
-      case 'price_desc': query += ' ORDER BY price DESC'; break;
-      case 'newest': query += ' ORDER BY created_at DESC'; break;
-      case 'rating': query += ' ORDER BY rating DESC'; break;
-      default: query += ' ORDER BY featured DESC, created_at DESC';
+      case 'price_asc': orderSql = ' ORDER BY price ASC'; break;
+      case 'price_desc': orderSql = ' ORDER BY price DESC'; break;
+      case 'newest': orderSql = ' ORDER BY created_at DESC'; break;
+      case 'rating': orderSql = ' ORDER BY rating DESC'; break;
+      default: orderSql = ' ORDER BY featured DESC, created_at DESC';
     }
 
-    query += ' LIMIT ? OFFSET ?';
-    params.push(parseInt(limit), (page - 1) * parseInt(limit));
-
-    const [rows] = await sequelize.query(query, { replacements: params });
-    res.json({ products: rows, total, page: parseInt(page), totalPages: Math.ceil(total / limit) });
+    const currentPage = Math.max(parseInt(page, 10) || 1, 1);
+    const pageLimit = Math.min(Math.max(parseInt(limit, 10) || 12, 1), 100);
+    const query = `SELECT * FROM products${whereSql}${orderSql} LIMIT ? OFFSET ?`;
+    const [rows] = await sequelize.query(query, { replacements: [...params, pageLimit, (currentPage - 1) * pageLimit] });
+    res.json({ products: rows, total: parseInt(total), page: currentPage, totalPages: Math.ceil(total / pageLimit) });
   } catch (error) {
     console.error('Get products error:', error);
     res.status(500).json({ message: 'Failed to get products' });
@@ -71,8 +86,19 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-router.post('/', auth, authorize('admin'), async (req, res) => {
+router.post('/', auth, authorize('admin'), [
+  body('name').trim().notEmpty().isLength({ max: 255 }).withMessage('Product name is required'),
+  body('category').trim().notEmpty().isLength({ max: 100 }).withMessage('Category is required'),
+  body('price').isFloat({ min: 0 }).withMessage('Price must be a non-negative number'),
+  body('rentalPrice').optional({ values: 'falsy' }).isFloat({ min: 0 }).withMessage('Rental price must be a non-negative number'),
+  body('condition').optional({ values: 'falsy' }).isIn(['new', 'like_new', 'good', 'fair', 'poor']).withMessage('Invalid condition'),
+  body('stockCount').optional({ values: 'falsy' }).isInt({ min: 0 }).withMessage('Stock must be a non-negative integer'),
+  imagesValidator,
+], async (req, res) => {
   try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ message: errors.array()[0].msg });
+
     const { name, description, category, subCategory, price, rentalPrice, isRentable, condition, brand, images, specifications, disabilityCompatibility, stockCount } = req.body;
     const id = uuidv4();
     const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') + '-' + Date.now();
@@ -91,8 +117,17 @@ router.post('/', auth, authorize('admin'), async (req, res) => {
   }
 });
 
-router.put('/:id', auth, authorize('admin'), async (req, res) => {
+router.put('/:id', auth, authorize('admin'), [
+  body('name').optional({ values: 'falsy' }).trim().isLength({ max: 255 }).withMessage('Name too long'),
+  body('description').optional({ values: 'falsy' }).isLength({ max: 5000 }).withMessage('Description too long'),
+  body('price').optional({ values: 'falsy' }).isFloat({ min: 0 }).withMessage('Price must be a non-negative number'),
+  body('isAvailable').optional({ values: 'falsy' }).isBoolean().withMessage('isAvailable must be a boolean'),
+  body('featured').optional({ values: 'falsy' }).isBoolean().withMessage('featured must be a boolean'),
+], async (req, res) => {
   try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ message: errors.array()[0].msg });
+
     const { name, description, price, isAvailable, featured } = req.body;
     const sanitize = (v) => v === undefined ? null : v;
     await sequelize.query(

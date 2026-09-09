@@ -2,23 +2,50 @@ import React, { useState, useEffect } from 'react';
 import Layout from '../../components/Layout';
 import DashboardSidebar from '../../components/DashboardSidebar';
 import { useAuth } from '../../context/AuthContext';
+import { useRouteGuard } from '../../lib/useRouteGuard';
 import { analyticsAPI } from '../../lib/api';
 import { Line } from 'react-chartjs-2';
 import { Chart as ChartJS, LineElement, PointElement, CategoryScale, LinearScale, Tooltip, Legend, Filler } from 'chart.js';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTrophy, faChartLine, faRocket } from '@fortawesome/free-solid-svg-icons';
+import { faTrophy, faChartLine, faRocket, faFire } from '@fortawesome/free-solid-svg-icons';
 
 ChartJS.register(LineElement, PointElement, CategoryScale, LinearScale, Tooltip, Legend, Filler);
 
 export default function Performance() {
-  const { user } = useAuth();
+  useRouteGuard();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [stats, setStats] = useState(null);
 
+  useEffect(() => {
+    analyticsAPI.getAthleteStats()
+      .then(r => setStats(r.data))
+      .catch(() => setStats(null));
+  }, []);
+
+  if (!stats) return null;
+
+  const weeks = stats.weeklyProgress.map(w => `Week ${w.week.split('-')[1]}`);
   const lineData = {
-    labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5', 'Week 6', 'Week 7', 'Week 8'],
+    labels: weeks.length ? weeks : ['No data'],
     datasets: [
-      { label: 'Performance Score', data: [5, 6, 5.5, 7, 7.5, 8, 8.2, 9], borderColor: '#0077B6', backgroundColor: 'rgba(0,119,182,0.1)', fill: true, tension: 0.4, pointBackgroundColor: '#0077B6' },
-      { label: 'Calories (x100)', data: [3, 3.5, 4, 4.2, 5, 5.5, 6, 6.5], borderColor: '#52B788', backgroundColor: 'rgba(82,183,136,0.1)', fill: true, tension: 0.4, pointBackgroundColor: '#52B788' },
+      {
+        label: 'Avg Performance Score',
+        data: weeks.length ? stats.weeklyProgress.map(w => Number(w.avg_score || 0)) : [],
+        borderColor: '#0077B6',
+        backgroundColor: 'rgba(0,119,182,0.1)',
+        fill: true,
+        tension: 0.4,
+        pointBackgroundColor: '#0077B6',
+      },
+      {
+        label: 'Calories (x100)',
+        data: weeks.length ? stats.weeklyProgress.map(w => Number(w.calories || 0) / 100) : [],
+        borderColor: '#52B788',
+        backgroundColor: 'rgba(82,183,136,0.1)',
+        fill: true,
+        tension: 0.4,
+        pointBackgroundColor: '#52B788',
+      },
     ]
   };
 
@@ -34,24 +61,15 @@ export default function Performance() {
 
           <div className="grid lg:grid-cols-2 gap-8 mb-8">
             <div className="card">
-              <h3 className="font-bold text-navy-900 mb-4">8-Week Performance Trend</h3>
-              <Line data={lineData} options={{ responsive: true, plugins: { legend: { position: 'bottom' } }, scales: { y: { beginAtZero: true, max: 10 } } }} />
+              <h3 className="font-bold text-navy-900 mb-4">Weekly Performance Trend</h3>
+              <Line data={lineData} options={{ responsive: true, plugins: { legend: { position: 'bottom' } }, scales: { y: { beginAtZero: true } } }} />
             </div>
             <div className="space-y-4">
               <div className="card">
                 <div className="flex items-center justify-between">
                   <div>
-                    <div className="text-sm text-gray-500">Best Performance</div>
-                    <div className="text-2xl font-bold text-navy-900">9.0 / 10</div>
-                  </div>
-                  <FontAwesomeIcon icon={faTrophy} className="text-3xl text-yellow-500" />
-                </div>
-              </div>
-              <div className="card">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="text-sm text-gray-500">Weekly Average</div>
-                    <div className="text-2xl font-bold text-navy-900">7.2 / 10</div>
+                    <div className="text-sm text-gray-500">Avg Performance Score</div>
+                    <div className="text-2xl font-bold text-navy-900">{stats.avgPerformance} / 10</div>
                   </div>
                   <FontAwesomeIcon icon={faChartLine} className="text-3xl text-ocean-500" />
                 </div>
@@ -59,25 +77,31 @@ export default function Performance() {
               <div className="card">
                 <div className="flex items-center justify-between">
                   <div>
-                    <div className="text-sm text-gray-500">Total Improvement</div>
-                    <div className="text-2xl font-bold text-green-mint">+80%</div>
+                    <div className="text-sm text-gray-500">Completion Rate</div>
+                    <div className="text-2xl font-bold text-green-mint">+{stats.completionRate}%</div>
                   </div>
                   <FontAwesomeIcon icon={faRocket} className="text-3xl text-purple-500" />
+                </div>
+              </div>
+              <div className="card">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-sm text-gray-500">Total Calories Burned</div>
+                    <div className="text-2xl font-bold text-navy-900">{stats.totalCalories}</div>
+                  </div>
+                  <FontAwesomeIcon icon={faFire} className="text-3xl text-orange-500" />
                 </div>
               </div>
             </div>
           </div>
 
           <div className="card">
-            <h3 className="font-bold text-navy-900 mb-4">Performance Metrics Breakdown</h3>
+            <h3 className="font-bold text-navy-900 mb-4">Sessions Overview</h3>
             <div className="grid md:grid-cols-3 gap-6">
               {[
-                { label: 'Endurance', value: '85%', color: 'bg-ocean-500' },
-                { label: 'Strength', value: '72%', color: 'bg-green-mint' },
-                { label: 'Flexibility', value: '68%', color: 'bg-purple-500' },
-                { label: 'Speed', value: '78%', color: 'bg-orange-500' },
-                { label: 'Coordination', value: '90%', color: 'bg-green-apple' },
-                { label: 'Recovery', value: '82%', color: 'bg-teal-500' },
+                { label: 'Total Sessions', value: String(stats.totalSessions), color: 'bg-ocean-500' },
+                { label: 'Completed', value: String(stats.completedSessions), color: 'bg-green-mint' },
+                { label: 'Active Programs', value: String(stats.activePrograms), color: 'bg-purple-500' },
               ].map(m => (
                 <div key={m.label}>
                   <div className="flex justify-between text-sm mb-1">
@@ -85,7 +109,7 @@ export default function Performance() {
                     <span className="font-medium text-navy-900">{m.value}</span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2.5">
-                    <div className={`${m.color} rounded-full h-2.5 transition-all`} style={{ width: m.value }} />
+                    <div className={`${m.color} rounded-full h-2.5 transition-all`} style={{ width: '100%' }} />
                   </div>
                 </div>
               ))}

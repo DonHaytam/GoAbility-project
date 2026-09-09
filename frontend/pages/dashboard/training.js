@@ -2,19 +2,22 @@ import React, { useState, useEffect } from 'react';
 import Layout from '../../components/Layout';
 import DashboardSidebar from '../../components/DashboardSidebar';
 import { useAuth } from '../../context/AuthContext';
+import { useRouteGuard } from '../../lib/useRouteGuard';
 import { trainingAPI } from '../../lib/api';
 import Link from 'next/link';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faDumbbell, faCalendarAlt, faClipboardList } from '@fortawesome/free-solid-svg-icons';
 
 export default function DashboardTraining() {
-  const { user } = useAuth();
+  const user = useRouteGuard();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [enrollments, setEnrollments] = useState([]);
 
   useEffect(() => {
     if (user) trainingAPI.getEnrollments().then(r => setEnrollments(r.data.enrollments || [])).catch(() => {});
   }, [user]);
+
+  if (!user) return null;
 
   return (
     <Layout hideFooter>

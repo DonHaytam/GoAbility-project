@@ -2,16 +2,19 @@ import React, { useState, useEffect } from 'react';
 import Layout from '../../components/Layout';
 import DashboardSidebar from '../../components/DashboardSidebar';
 import { useAuth } from '../../context/AuthContext';
+import { useRouteGuard } from '../../lib/useRouteGuard';
 import { trainingAPI } from '../../lib/api';
 import toast from 'react-hot-toast';
 
 export default function CoachPrograms() {
-  const { user } = useAuth();
+  const user = useRouteGuard('coach');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [programs, setPrograms] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ name: '', description: '', category: '', disabilityType: '', difficulty: 'beginner', durationWeeks: 4, sessionsPerWeek: 3, price: 0 });
   const [saving, setSaving] = useState(false);
+
+  if (!user) return null;
 
   useEffect(() => {
     if (user) trainingAPI.getPrograms({}).then(r => setPrograms(r.data.programs || [])).catch(() => {});

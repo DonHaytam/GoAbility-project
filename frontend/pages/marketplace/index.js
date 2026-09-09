@@ -16,6 +16,12 @@ export default function Marketplace() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({ category: '', search: '', sort: 'newest', minPrice: '', maxPrice: '' });
+  const [searchInput, setSearchInput] = useState('');
+
+  useEffect(() => {
+    const timer = setTimeout(() => setFilters(f => ({ ...f, search: searchInput })), 300);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
 
   useEffect(() => {
     setLoading(true);
@@ -33,7 +39,7 @@ export default function Marketplace() {
 
           <motion.div {...fadeUp} className="max-w-3xl mx-auto">
             <div className="flex gap-3">
-              <input type="text" value={filters.search} onChange={(e) => setFilters({...filters, search: e.target.value})}
+              <input type="text" value={searchInput} onChange={(e) => setSearchInput(e.target.value)}
                 placeholder={t('marketplace.search')}
                 className="flex-1 px-5 py-3.5 rounded-xl text-navy-900 bg-white/95 focus:outline-none focus:ring-2 focus:ring-ocean-500" />
               <select value={filters.sort} onChange={(e) => setFilters({...filters, sort: e.target.value})}

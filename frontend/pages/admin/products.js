@@ -40,6 +40,14 @@ export default function AdminProducts() {
     catch { toast.error('Failed'); }
   };
 
+  const toggleAvailability = async (id, isAvailable) => {
+    try {
+      await productsAPI.update(id, { isAvailable: !isAvailable });
+      load();
+      toast.success('Updated');
+    } catch { toast.error('Failed to update'); }
+  };
+
   const deleteProduct = async (id) => {
     if (!confirm('Delete this product?')) return;
     try { await productsAPI.delete(id); load(); toast.success('Deleted'); }
@@ -106,7 +114,7 @@ export default function AdminProducts() {
                       </td>
                       <td className="py-3 px-4">
                         <div className="flex gap-2">
-                          <button onClick={() => productsAPI.update(p.id, { isAvailable: !p.is_available }).then(load)} className="text-xs text-ocean-500 hover:underline">
+                          <button onClick={() => toggleAvailability(p.id, p.is_available)} className="text-xs text-ocean-500 hover:underline">
                             {p.is_available ? 'Disable' : 'Enable'}
                           </button>
                           <button onClick={() => deleteProduct(p.id)} className="text-xs text-red-500 hover:underline">Delete</button>

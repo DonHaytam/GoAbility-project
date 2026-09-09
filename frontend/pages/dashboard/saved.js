@@ -2,13 +2,16 @@ import React, { useState } from 'react';
 import Layout from '../../components/Layout';
 import DashboardSidebar from '../../components/DashboardSidebar';
 import { useAuth } from '../../context/AuthContext';
+import { useRouteGuard } from '../../lib/useRouteGuard';
 import Link from 'next/link';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faHeart } from '@fortawesome/free-solid-svg-icons';
 
 export default function Saved() {
-  const { user } = useAuth();
+  const user = useRouteGuard();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  if (!user) return null;
 
   return (
     <Layout hideFooter>
