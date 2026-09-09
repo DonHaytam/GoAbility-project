@@ -91,6 +91,9 @@ router.post('/posts/:id/comments', auth, [
     const errors = validationResult(req);
     if (!errors.isEmpty()) return res.status(400).json({ message: errors.array()[0].msg });
 
+    const [postRows] = await sequelize.query('SELECT id FROM forum_posts WHERE id = ?', { replacements: [req.params.id] });
+    if (!postRows.length) return res.status(404).json({ message: 'Post not found' });
+
     const { content } = req.body;
     const id = uuidv4();
     await sequelize.query(
@@ -146,6 +149,9 @@ router.post('/events', auth, [
 
 router.post('/events/:id/register', auth, async (req, res) => {
   try {
+    const [eventRows] = await sequelize.query('SELECT id FROM events WHERE id = ?', { replacements: [req.params.id] });
+    if (!eventRows.length) return res.status(404).json({ message: 'Event not found' });
+
     const id = uuidv4();
     const [, meta] = await sequelize.query(
       'INSERT IGNORE INTO event_registrations (id, event_id, user_id) VALUES (?, ?, ?)',
