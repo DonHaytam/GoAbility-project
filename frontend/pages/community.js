@@ -41,11 +41,15 @@ export default function Community() {
       communityAPI.getAssociations(),
       user ? communityAPI.getMentors() : Promise.resolve({ data: { mentors: [] } })
     ]).then(([p, e, s, a, m]) => {
-      setPosts(p.data.posts || []);
+      const loadedPosts = p.data.posts || [];
+      const loadedStories = s.data.stories || [];
+      setPosts(loadedPosts);
       setEvents(e.data.events || []);
-      setStories(s.data.stories || []);
+      setStories(loadedStories);
       setAssociations(a.data.associations || []);
       setMentors(m.data.mentors || []);
+      setLikedPosts(Object.fromEntries(loadedPosts.map(x => [x.id, !!x.liked])));
+      setLikedStories(Object.fromEntries(loadedStories.map(x => [x.id, !!x.liked])));
     }).catch(() => {}).finally(() => setLoading(false));
   }, [user]);
 

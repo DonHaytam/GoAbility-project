@@ -2,11 +2,11 @@ const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const { body, validationResult } = require('express-validator');
 const { sequelize } = require('../config/database');
-const { auth, authorize } = require('../middleware/auth');
+const { auth, authorize, optionalAuth } = require('../middleware/auth');
 
 const router = express.Router();
 
-router.get('/posts', async (req, res) => {
+router.get('/posts', optionalAuth, async (req, res) => {
   try {
     const { category, page = 1, limit = 10 } = req.query;
     let query = `SELECT p.*, u.first_name, u.last_name, u.avatar_url,
@@ -20,6 +20,19 @@ router.get('/posts', async (req, res) => {
     params.push(parseInt(limit), (page - 1) * parseInt(limit));
 
     const [rows] = await sequelize.query(query, { replacements: params });
+    if (req.user) {
+      const ids = rows.map(r => r.id);
+      let likedIds = [];
+      if (ids.length) {
+        const [likes] = await sequelize.query(
+          'SELECT post_id FROM post_likes WHERE user_id = ? AND post_id IN (?)',
+          { replacements: [req.user.id, ids] }
+        );
+        likedIds = likes.map(l => l.post_id);
+      }
+      const likedSet = new Set(likedIds);
+      rows.forEach(r => { r.liked = likedSet.has(r.id); });
+    }
     res.json({ posts: rows, page: parseInt(page) });
   } catch (error) {
     res.status(500).json({ message: 'Failed to get posts' });
@@ -162,7 +175,7 @@ router.get('/associations', async (req, res) => {
   }
 });
 
-router.get('/stories', async (req, res) => {
+router.get('/stories', optionalAuth, async (req, res) => {
   try {
     const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
     const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 50, 1), 100);
@@ -172,6 +185,19 @@ router.get('/stories', async (req, res) => {
        WHERE s.is_approved = true ORDER BY s.is_featured DESC, s.created_at DESC LIMIT ? OFFSET ?`,
       { replacements: [limit, (page - 1) * limit] }
     );
+    if (req.user) {
+      const ids = rows.map(r => r.id);
+      let likedIds = [];
+      if (ids.length) {
+        const [likes] = await sequelize.query(
+          'SELECT story_id FROM story_likes WHERE user_id = ? AND story_id IN (?)',
+          { replacements: [req.user.id, ids] }
+        );
+        likedIds = likes.map(l => l.story_id);
+      }
+      const likedSet = new Set(likedIds);
+      rows.forEach(r => { r.liked = likedSet.has(r.id); });
+    }
     res.json({ stories: rows, page, limit });
   } catch (error) {
     console.error('Get stories error:', error);

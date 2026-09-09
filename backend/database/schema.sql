@@ -164,8 +164,18 @@ CREATE TABLE forum_posts (
   is_pinned BOOLEAN DEFAULT false,
   is_approved BOOLEAN DEFAULT true,
   view_count INTEGER DEFAULT 0,
+  likes_count INTEGER DEFAULT 0,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Post likes
+CREATE TABLE post_likes (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  post_id UUID NOT NULL REFERENCES forum_posts(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE (post_id, user_id)
 );
 
 -- Forum comments
@@ -246,6 +256,15 @@ CREATE TABLE success_stories (
   is_featured BOOLEAN DEFAULT false,
   likes_count INTEGER DEFAULT 0,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Story likes
+CREATE TABLE story_likes (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  story_id UUID NOT NULL REFERENCES success_stories(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE (story_id, user_id)
 );
 
 -- Messages

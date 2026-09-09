@@ -51,4 +51,37 @@ const authorize = (...roles) => {
   };
 };
 
-module.exports = { auth, authorize };
+const optionalAuth = async (req, res, next) => {
+  try {
+    let token = null;
+
+    const header = req.headers.authorization;
+    if (header && header.startsWith('Bearer ')) {
+      token = header.split(' ')[1];
+    } else if (req.cookies && req.cookies.token) {
+      token = req.cookies.token;
+    }
+
+    if (!token) {
+      req.user = null;
+      return next();
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET, {
+      algorithms: ['HS256']
+    });
+
+    const [rows] = await sequelize.query(
+      'SELECT id, email, first_name, last_name, role, avatar_url, is_active FROM users WHERE id = ?',
+      { replacements: [decoded.id] }
+    );
+
+    req.user = rows.length && rows[0].is_active ? rows[0] : null;
+    next();
+  } catch (error) {
+    req.user = null;
+    next();
+  }
+};
+
+module.exports = { auth, authorize, optionalAuth };
