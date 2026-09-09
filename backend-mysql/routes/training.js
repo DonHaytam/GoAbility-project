@@ -38,6 +38,18 @@ router.get('/programs/:id', async (req, res) => {
 router.post('/programs', auth, authorize('coach', 'admin'), async (req, res) => {
   try {
     const { name, description, category, disabilityType, difficulty, durationWeeks, sessionsPerWeek, price } = req.body;
+    if (!name || typeof name !== 'string' || !name.trim() || name.length > 255) {
+      return res.status(400).json({ message: 'Program name is required (max 255 chars)' });
+    }
+    if (durationWeeks !== undefined && (!Number.isInteger(Number(durationWeeks)) || Number(durationWeeks) < 1)) {
+      return res.status(400).json({ message: 'durationWeeks must be a positive integer' });
+    }
+    if (sessionsPerWeek !== undefined && (!Number.isInteger(Number(sessionsPerWeek)) || Number(sessionsPerWeek) < 1)) {
+      return res.status(400).json({ message: 'sessionsPerWeek must be a positive integer' });
+    }
+    if (price !== undefined && (isNaN(Number(price)) || Number(price) < 0)) {
+      return res.status(400).json({ message: 'price must be a non-negative number' });
+    }
     const id = uuidv4();
     await sequelize.query(
       `INSERT INTO training_programs (id, coach_id, name, description, category, disability_type, difficulty, duration_weeks, sessions_per_week, price, is_published)
@@ -96,6 +108,10 @@ router.get('/enrollments', auth, async (req, res) => {
 router.post('/progress', auth, async (req, res) => {
   try {
     const { sessionId, date, completed, durationMinutes, caloriesBurned, performanceScore, notes } = req.body;
+    if (!sessionId) return res.status(400).json({ message: 'sessionId is required' });
+    const [sessionRows] = await sequelize.query('SELECT id FROM training_sessions WHERE id = ?', { replacements: [sessionId] });
+    if (!sessionRows.length) return res.status(404).json({ message: 'Session not found' });
+
     const id = uuidv4();
     await sequelize.query(
       `INSERT INTO user_progress (id, user_id, session_id, date, completed, duration_minutes, calories_burned, performance_score, notes)
