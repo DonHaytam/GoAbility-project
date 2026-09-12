@@ -1,5 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
+  darkMode: 'class',
   content: [
     "./pages/**/*.{js,ts,jsx,tsx}",
     "./components/**/*.{js,ts,jsx,tsx}",
@@ -8,26 +9,29 @@ module.exports = {
     extend: {
       colors: {
         navy: {
-          900: '#0B2545',
-          800: '#0F2E55',
-          700: '#134074',
-          600: '#1A5090',
+          900: '#0B3B36',
+          800: '#0E4740',
+          700: '#12544A',
+          600: '#17655A',
         },
         ocean: {
-          500: '#0077B6',
-          400: '#0096D6',
-          300: '#00B4F0',
+          600: '#0A6B63',
+          500: '#0E7C73',
+          400: '#149A8E',
+          300: '#2BB5A7',
         },
         green: {
-          teal: '#70C1B3',
-          mint: '#52B788',
-          apple: '#74C69D',
+          teal: '#7FBFA9',
+          mint: '#4E9171',
+          apple: '#86BE9E',
         },
-        light: '#F8F9FA',
+        light: '#F7F6F1',
+        line: '#EFECE3',
+        border: '#E3DFD3',
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
-        display: ['Poppins', 'system-ui', 'sans-serif'],
+        display: ['"Fraunces"', '"Source Serif 4"', 'Georgia', 'serif'],
       },
       animation: {
         'fade-in': 'fadeIn 0.6s ease-out',

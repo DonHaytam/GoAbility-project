@@ -11,10 +11,10 @@ const fadeUp = { initial: { opacity: 0, y: 40 }, whileInView: { opacity: 1, y: 0
 const stagger = { initial: {}, whileInView: { transition: { staggerChildren: 0.15 } }, viewport: { once: true } };
 
 const features = [
-  { icon: faStore, key: 'marketplace', color: 'from-ocean-500 to-blue-600' },
+  { icon: faStore, key: 'marketplace', color: 'from-ocean-600 to-ocean-400' },
   { icon: faDumbbell, key: 'training', color: 'from-green-teal to-green-mint' },
   { icon: faChartBar, key: 'tracking', color: 'from-green-mint to-green-apple' },
-  { icon: faHandshake, key: 'community', color: 'from-navy-700 to-ocean-500' },
+  { icon: faHandshake, key: 'community', color: 'from-navy-700 to-ocean-600' },
 ];
 
 const testimonials = [
@@ -40,60 +40,61 @@ export default function Home() {
       <section className="relative min-h-screen flex items-center overflow-hidden">
         <div className="absolute inset-0 gradient-primary opacity-95" />
         <div className="absolute inset-0" style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+          backgroundImage: `radial-gradient(circle at 18% 20%, rgba(46,181,167,0.18) 0%, transparent 42%), radial-gradient(circle at 82% 70%, rgba(127,191,169,0.16) 0%, transparent 42%), radial-gradient(circle at 50% 110%, rgba(11,59,54,0.6) 0%, transparent 55%)`,
         }} />
+        <div className="absolute -top-24 -right-24 w-[34rem] h-[34rem] rounded-full bg-ocean-400/10 blur-3xl" />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-32">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <motion.div initial={{ opacity: 0, x: rtl ? 40 : -40 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.8 }}>
-              <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-full px-4 py-2 mb-6">
-                <span className="w-2 h-2 bg-green-mint rounded-full animate-pulse" />
+              <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-full px-4 py-2 mb-6 border border-white/10">
+                <span className="w-2 h-2 bg-green-teal rounded-full animate-pulse" />
                 <span className="text-white/80 text-sm font-medium">{t('hero.socialImpact')}</span>
               </div>
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight">
+              <h1 className="text-4xl md:text-5xl lg:text-[3.6rem] font-semibold text-white mb-6 leading-[1.12] tracking-tight [text-wrap:balance]">
                 {t('hero.title')}
               </h1>
-              <p className="text-lg md:text-xl text-white/80 mb-8 leading-relaxed max-w-xl">
+              <p className="text-lg md:text-xl text-white/75 mb-8 leading-relaxed max-w-xl">
                 {t('hero.subtitle')}
               </p>
               <div className="flex flex-wrap gap-4">
-                <Link href="/auth/register" className="btn-green text-lg px-8 py-4 shadow-lg shadow-green-mint/30">
+                <Link href="/auth/register" className="btn-white text-lg px-8 py-4">
                   {t('hero.cta')}
                 </Link>
-                <Link href="/about" className="btn-white text-lg px-8 py-4">
+                <Link href="/about" className="btn-green text-lg px-8 py-4 shadow-lg shadow-green-mint/20">
                   {t('hero.learnMore')}
                 </Link>
               </div>
-              <div className="flex items-center gap-8 mt-12">
+              <div className="flex items-center gap-8 mt-12 border-t border-white/10 pt-8">
                 {[{ num: '500+', label: t('metrics.athletes') }, { num: '50+', label: t('metrics.coaches') }, { num: '98%', label: t('metrics.satisfaction') }].map((stat) => (
                   <div key={stat.label}>
                     <div className="text-2xl font-bold text-white">{stat.num}</div>
-                    <div className="text-white/60 text-sm">{stat.label}</div>
+                    <div className="text-white/55 text-sm">{stat.label}</div>
                   </div>
                 ))}
               </div>
             </motion.div>
-            <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.8, delay: 0.3 }}
+            <motion.div initial={{ opacity: 0, scale: 0.92 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.8, delay: 0.3 }}
               className="hidden lg:flex items-center justify-center">
               <div className="relative w-96 h-96">
-                <div className="absolute inset-0 bg-gradient-to-br from-ocean-500/30 to-green-mint/30 rounded-full animate-float" />
-                <div className="absolute inset-8 bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20 flex items-center justify-center">
+                <div className="absolute inset-0 bg-gradient-to-br from-ocean-400/30 to-green-teal/30 rounded-full blur-2xl" />
+                <div className="absolute inset-10 bg-white/[0.07] backdrop-blur-md rounded-3xl border border-white/15 flex items-center justify-center shadow-2xl">
                   <div className="text-center p-8">
-                    <FontAwesomeIcon icon={faWheelchair} className="text-7xl mb-4" />
-                    <div className="text-white font-bold text-xl">Inclusive Sports</div>
-                    <div className="text-white/60 text-sm">For Everyone</div>
+                    <FontAwesomeIcon icon={faWheelchair} className="text-6xl mb-5 text-ocean-300" />
+                    <div className="text-white font-semibold text-xl font-display">Inclusive Sports</div>
+                    <div className="text-white/55 text-sm mt-1">For Everyone</div>
                   </div>
                 </div>
-                <div className="absolute -top-4 -right-4 w-24 h-24 bg-green-mint/30 rounded-xl backdrop-blur-sm border border-green-mint/30 flex items-center justify-center animate-delay-200">
-                  <span className="text-white font-bold text-lg">#1</span>
+                <div className="absolute -top-4 -right-4 w-24 h-24 bg-green-teal/20 backdrop-blur-md rounded-2xl border border-green-teal/30 flex items-center justify-center shadow-lg animate-delay-200">
+                  <span className="text-white font-bold text-lg font-display">#1</span>
                 </div>
-                <div className="absolute -bottom-4 -left-4 w-32 h-20 bg-ocean-500/30 rounded-xl backdrop-blur-sm border border-ocean-500/30 flex items-center justify-center animate-delay-500">
-                  <span className="text-white text-sm font-medium">Morocco</span>
+                <div className="absolute -bottom-4 -left-4 w-32 h-20 bg-ocean-400/20 backdrop-blur-md rounded-2xl border border-ocean-300/30 flex items-center justify-center shadow-lg animate-delay-500">
+                  <span className="text-white text-sm font-medium tracking-wide">Morocco</span>
                 </div>
               </div>
             </motion.div>
           </div>
         </div>
-        <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-light to-transparent" />
+        <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-[var(--surface)] to-transparent" />
       </section>
 
       {/* Mission Section */}
